@@ -1,0 +1,31 @@
+pluginManagement {
+    includeBuild("../node_modules/@react-native/gradle-plugin")
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.android.tools.build") {
+                useModule("com.android.tools.build:gradle:8.3.0")
+            }
+        }
+    }
+}
+
+plugins {
+    id("com.facebook.react.settings")
+    id("com.facebook.react.rootproject") apply false
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex ->
+    if (System.getenv("OS")?.contains("Windows")) {
+        ex.autolinkLibrariesFromCommand(["cmd", "/c", "npx", "react-native", "config"])
+    } else {
+        ex.autolinkLibrariesFromCommand()
+    }
+}
+
+rootProject.name = 'FultraApp3'
+include ':app'

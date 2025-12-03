@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx react-native start --reset-cache)",
+      "Bash(timeout /t 1)",
+      "Bash(npm ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
