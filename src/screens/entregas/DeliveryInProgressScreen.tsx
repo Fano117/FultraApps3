@@ -7,7 +7,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {RouteMapView, Button, LoadingSpinner} from '../../shared/components';
 import {useDeliveryDetails, useLocationTracking} from '../../shared/hooks';
 import {useDeliveryStore} from '../../shared/store';
-import {getDirections, decodePolyline, formatDistance, formatDuration} from '../../shared/services/mapService';
+import {getDirections, decodePolyline} from '../../shared/services/mapService';
 import {Coordinates} from '../../shared/models/Location';
 import {colors} from '../../design-system/theme/colors';
 import {typography} from '../../design-system/theme/typography';
@@ -56,7 +56,7 @@ export const DeliveryInProgressScreen: React.FC<DeliveryInProgressScreenProps> =
   // Fetch route
   useEffect(() => {
     const fetchRoute = async () => {
-      if (!delivery || !location) return;
+      if (!delivery || !location) {return;}
 
       try {
         const response = await getDirections({
@@ -66,11 +66,11 @@ export const DeliveryInProgressScreen: React.FC<DeliveryInProgressScreenProps> =
         });
 
         if (response.status === 'OK' && response.routes.length > 0) {
-          const route = response.routes[0];
-          const decodedRoute = decodePolyline(route.polyline);
+          const directionsRoute = response.routes[0];
+          const decodedRoute = decodePolyline(directionsRoute.polyline);
           setRouteCoordinates(decodedRoute);
-          setDistance(route.distance.text);
-          setDuration(route.duration.text);
+          setDistance(directionsRoute.distance.text);
+          setDuration(directionsRoute.duration.text);
         }
       } catch (error) {
         console.error('Error fetching route:', error);

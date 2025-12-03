@@ -139,7 +139,7 @@ export const truncateText = (
 
 // Capitalize first letter
 export const capitalize = (text: string): string => {
-  if (!text) return '';
+  if (!text) {return '';}
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 };
 
@@ -153,7 +153,7 @@ export const capitalizeWords = (text: string): string => {
 
 // Generate initials from name
 export const getInitials = (name: string, maxLength: number = 2): string => {
-  if (!name) return '';
+  if (!name) {return '';}
 
   const parts = name.trim().split(/\s+/);
   const initials = parts.map(part => part.charAt(0).toUpperCase()).join('');
@@ -211,10 +211,10 @@ export const throttle = <T extends (...args: any[]) => any>(
 
 // Check if value is empty
 export const isEmpty = (value: any): boolean => {
-  if (value === null || value === undefined) return true;
-  if (typeof value === 'string') return value.trim() === '';
-  if (Array.isArray(value)) return value.length === 0;
-  if (typeof value === 'object') return Object.keys(value).length === 0;
+  if (value === null || value === undefined) {return true;}
+  if (typeof value === 'string') {return value.trim() === '';}
+  if (Array.isArray(value)) {return value.length === 0;}
+  if (typeof value === 'object') {return Object.keys(value).length === 0;}
   return false;
 };
 

@@ -1,4 +1,4 @@
-import React, {useEffect, useCallback} from 'react';
+import React, {useCallback} from 'react';
 import {
   View,
   Text,
@@ -45,7 +45,7 @@ export const DeliveryDetailsScreen: React.FC<DeliveryDetailsScreenProps> = ({
   const {deliveryId} = route.params;
   const {delivery, isLoading, error} = useDeliveryDetails(deliveryId);
   const {startDelivery, cancelDelivery} = useDeliveryStore();
-  const {location, getCurrentLocation} = useCurrentLocation();
+  const {location, refetch: getCurrentLocation} = useCurrentLocation();
 
   const handleGoBack = useCallback(() => {
     navigation.goBack();

@@ -35,6 +35,13 @@ export const DeliveryCompletedScreen: React.FC<DeliveryCompletedScreenProps> = (
   const {deliveryId} = route.params;
   const {delivery, isLoading} = useDeliveryDetails(deliveryId);
 
+  const handleGoHome = useCallback(() => {
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'MainTabs'}],
+    });
+  }, [navigation]);
+
   // Prevent going back with hardware button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -43,14 +50,7 @@ export const DeliveryCompletedScreen: React.FC<DeliveryCompletedScreenProps> = (
     });
 
     return () => backHandler.remove();
-  }, []);
-
-  const handleGoHome = useCallback(() => {
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'MainTabs'}],
-    });
-  }, [navigation]);
+  }, [handleGoHome]);
 
   const handleViewDetails = useCallback(() => {
     navigation.replace('DeliveryDetails', {deliveryId});

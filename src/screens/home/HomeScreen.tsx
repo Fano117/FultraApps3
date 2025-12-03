@@ -6,7 +6,6 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  FlatList,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {CompositeNavigationProp} from '@react-navigation/native';
@@ -14,7 +13,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {MapView, DeliveryCard, LoadingSpinner} from '../../shared/components';
-import {useAuth, useDeliveries, useCurrentLocation} from '../../shared/hooks';
+import {useAuth, useDeliveries} from '../../shared/hooks';
 import {DeliveryListItem} from '../../shared/models/Delivery';
 import {MapMarker} from '../../shared/models/Location';
 import {colors} from '../../design-system/theme/colors';
@@ -44,13 +43,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
     refresh,
     fetchDeliveries,
   } = useDeliveries();
-  const {location} = useCurrentLocation();
 
   const [showFullMap, setShowFullMap] = useState(false);
 
   // Fetch deliveries on mount
   useEffect(() => {
     fetchDeliveries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle refresh
@@ -89,22 +88,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   // Get greeting based on time
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Buenos días';
-    if (hour < 18) return 'Buenas tardes';
+    if (hour < 12) {return 'Buenos días';}
+    if (hour < 18) {return 'Buenas tardes';}
     return 'Buenas noches';
   };
-
-  // Convert deliveries to list items
-  const deliveryListItems: DeliveryListItem[] = deliveries.map(d => ({
-    id: d.id,
-    trackingNumber: d.trackingNumber,
-    status: d.status,
-    priority: d.priority,
-    customerName: d.customer.name,
-    destinationAddress: d.destination.address,
-    scheduledDate: d.scheduledDate,
-    estimatedDeliveryTime: d.estimatedDeliveryTime,
-  }));
 
   const renderStatsCard = () => (
     <View style={styles.statsContainer}>
@@ -131,14 +118,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
         <Text style={styles.statLabel}>Completadas</Text>
       </View>
     </View>
-  );
-
-  const renderDeliveryItem = ({item}: {item: DeliveryListItem}) => (
-    <DeliveryCard
-      delivery={item}
-      onPress={() => handleDeliveryPress(item)}
-      compact={false}
-    />
   );
 
   if (isLoading && deliveries.length === 0) {

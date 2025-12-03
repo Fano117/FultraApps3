@@ -1,5 +1,4 @@
 import {LocationWithDetails, Coordinates, RouteInfo} from './Location';
-import {User} from './User';
 
 export interface Delivery {
   id: string;

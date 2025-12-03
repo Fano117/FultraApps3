@@ -31,6 +31,7 @@ export const useDeliveries = () => {
   useEffect(() => {
     fetchDeliveries();
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFetchDeliveries = useCallback(
@@ -110,7 +111,7 @@ export const useDeliveries = () => {
   const completedDeliveries = deliveries.filter(d => d.status === 'delivered');
 
   const todayDeliveries = deliveries.filter(d => {
-    if (!d.scheduledDate) return false;
+    if (!d.scheduledDate) {return false;}
     const today = new Date().toISOString().split('T')[0];
     return d.scheduledDate === today;
   });

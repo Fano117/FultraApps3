@@ -19,7 +19,6 @@ const DeliveriesScreen = () => {
 
   const {
     deliveries,
-    isLoading,
     isRefreshing,
     refresh,
   } = useDeliveries();
@@ -53,30 +52,33 @@ const DeliveriesScreen = () => {
   );
 };
 
+// Define tab icon outside render function
+const getTabBarIcon = (route: {name: string}, focused: boolean, color: string, size: number) => {
+  let iconName: string;
+
+  switch (route.name) {
+    case 'Home':
+      iconName = focused ? 'home' : 'home-outline';
+      break;
+    case 'Deliveries':
+      iconName = focused ? 'cube' : 'cube-outline';
+      break;
+    case 'Settings':
+      iconName = focused ? 'settings' : 'settings-outline';
+      break;
+    default:
+      iconName = 'help-outline';
+  }
+
+  return <Icon name={iconName} size={size} color={color} />;
+};
+
 export const MainTabNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
         headerShown: false,
-        tabBarIcon: ({focused, color, size}) => {
-          let iconName: string;
-
-          switch (route.name) {
-            case 'Home':
-              iconName = focused ? 'home' : 'home-outline';
-              break;
-            case 'Deliveries':
-              iconName = focused ? 'cube' : 'cube-outline';
-              break;
-            case 'Settings':
-              iconName = focused ? 'settings' : 'settings-outline';
-              break;
-            default:
-              iconName = 'help-outline';
-          }
-
-          return <Icon name={iconName} size={size} color={color} />;
-        },
+        tabBarIcon: ({focused, color, size}) => getTabBarIcon(route, focused, color, size),
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.gray[500],
         tabBarStyle: styles.tabBar,
