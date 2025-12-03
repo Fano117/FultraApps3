@@ -4,9 +4,11 @@
 const getApiKey = (): string => {
   const apiKey = process.env.HERE_API_KEY;
   if (!apiKey || apiKey === 'YOUR_HERE_API_KEY') {
-    if (typeof __DEV__ !== 'undefined' && !__DEV__) {
+    // Log warning in development to help developers set up the API key
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
       console.warn(
-        'HERE_API_KEY environment variable is not set. HERE Maps API calls will fail.',
+        '[HERE Maps] HERE_API_KEY environment variable is not set. ' +
+          'Mock mode is active in development, but API calls will fail in production.',
       );
     }
     return 'YOUR_HERE_API_KEY';

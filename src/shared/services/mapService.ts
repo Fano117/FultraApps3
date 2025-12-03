@@ -426,8 +426,11 @@ export const getDirections = async (
               })
             : '';
 
-        // Combine all steps/actions
-        // Note: HERE doesn't provide per-action coordinates in the actions array
+        // Combine all steps/actions from HERE's response
+        // Note: HERE Routing v8 API provides actions with instructions but doesn't include
+        // per-action coordinates or polylines in the actions array. The overall route
+        // polyline above contains the full path. Applications needing step-level coordinates
+        // should derive them from the combined polyline using the action offsets.
         const steps = sections.flatMap((section: any) =>
           (section.actions || []).map((action: any) => ({
             distance: {
@@ -438,6 +441,8 @@ export const getDirections = async (
               value: action.duration || 0,
               text: formatDuration(action.duration || 0),
             },
+            // HERE API doesn't provide per-action coordinates; these would need
+            // to be derived from the polyline using action offset values
             startLocation: {
               latitude: 0,
               longitude: 0,
@@ -448,6 +453,7 @@ export const getDirections = async (
             },
             instruction: action.instruction || '',
             maneuver: action.action || '',
+            // Individual step polylines not available from HERE; use main route polyline
             polyline: '',
           })),
         );
