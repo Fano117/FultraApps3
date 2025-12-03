@@ -1,13 +1,27 @@
 import React, {useRef, useCallback, useEffect} from 'react';
-import {View, StyleSheet} from 'react-native';
+import {View, StyleSheet, Platform} from 'react-native';
 import RNMapView, {
   Marker,
   Polyline,
-  PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
 import {Coordinates, MapRegion, MapMarker, defaultMapRegion} from '../models/Location';
 import {colors} from '../../design-system/theme/colors';
+
+/**
+ * MapView Components
+ *
+ * NOTE: These components use react-native-maps for native map rendering.
+ * The map service layer (mapService.ts) has been migrated to use HERE Maps APIs
+ * for geocoding, routing, and place search functionality.
+ *
+ * For full HERE Maps integration including map tiles, consider:
+ * 1. Using react-native-webview with HERE Maps JavaScript API
+ * 2. Integrating HERE Maps SDK directly (requires ejecting from Expo if used)
+ *
+ * Current implementation uses platform default maps for visual rendering
+ * while HERE APIs power the location and routing services.
+ */
 
 interface MapViewProps {
   initialRegion?: MapRegion;
@@ -119,7 +133,7 @@ export const MapView: React.FC<MapViewProps> = ({
       <RNMapView
         ref={mapRef}
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
+        provider={Platform.OS === 'android' ? 'google' : undefined}
         initialRegion={initialRegion}
         showsUserLocation={showUserLocation}
         showsMyLocationButton={false}
@@ -172,7 +186,7 @@ export const SimpleMapView: React.FC<{
     <View style={[styles.simpleContainer, style]}>
       <RNMapView
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
+        provider={Platform.OS === 'android' ? 'google' : undefined}
         initialRegion={{
           ...coordinate,
           latitudeDelta: 0.01,
@@ -217,7 +231,7 @@ export const RouteMapView: React.FC<{
       <RNMapView
         ref={mapRef}
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
+        provider={Platform.OS === 'android' ? 'google' : undefined}
         showsUserLocation={!!currentLocation}
         showsMyLocationButton={false}>
         {/* Origin marker */}
