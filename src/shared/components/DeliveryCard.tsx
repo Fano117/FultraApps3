@@ -4,7 +4,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {
   DeliveryListItem,
   DeliveryStatus,
-  DeliveryPriority,
   getStatusLabel,
   getStatusColor,
   getPriorityColor,

@@ -303,9 +303,9 @@ export const getDirections = async (
       url += `&waypoints=${encodeURIComponent(waypointsStr)}`;
     }
 
-    if (request.avoidTolls) url += '&avoid=tolls';
-    if (request.avoidHighways) url += '&avoid=highways';
-    if (request.alternatives) url += '&alternatives=true';
+    if (request.avoidTolls) {url += '&avoid=tolls';}
+    if (request.avoidHighways) {url += '&avoid=highways';}
+    if (request.alternatives) {url += '&alternatives=true';}
 
     const response = await fetch(url);
     const data = await response.json();
@@ -375,7 +375,9 @@ export const getDirections = async (
 
 /**
  * Decode a polyline string to coordinates
+ * Uses bitwise operations as required by the polyline algorithm
  */
+/* eslint-disable no-bitwise */
 export const decodePolyline = (encoded: string): Coordinates[] => {
   const points: Coordinates[] = [];
   let index = 0;
@@ -416,6 +418,7 @@ export const decodePolyline = (encoded: string): Coordinates[] => {
 
   return points;
 };
+/* eslint-enable no-bitwise */
 
 /**
  * Calculate distance between two coordinates (Haversine formula)
@@ -498,6 +501,7 @@ const encodeMockPolyline = (coordinates: Coordinates[]): string => {
   return encoded;
 };
 
+/* eslint-disable no-bitwise */
 const encodeNumber = (num: number): string => {
   let encoded = '';
   let value = num < 0 ? ~(num << 1) : num << 1;
@@ -510,6 +514,7 @@ const encodeNumber = (num: number): string => {
   encoded += String.fromCharCode(value + 63);
   return encoded;
 };
+/* eslint-enable no-bitwise */
 
 /**
  * Get region that fits all coordinates

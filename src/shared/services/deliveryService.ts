@@ -3,15 +3,13 @@ import {
   DeliveryListItem,
   DeliveryFilter,
   DeliveryStats,
-  DeliveryUpdate,
   DeliveryStatus,
   StartDeliveryRequest,
   CompleteDeliveryRequest,
-  defaultDeliveryStats,
 } from '../models/Delivery';
 import {Coordinates} from '../models/Location';
 import {ApiResponse, PaginatedResponse, PaginationParams} from '../models/ApiResponse';
-import {get, post, put, patch} from './apiClient';
+import {get, post, patch} from './apiClient';
 
 // Mock data for development
 const mockDeliveries: Delivery[] = [
@@ -253,13 +251,13 @@ export const getDeliveries = async (
   }
 
   const params = new URLSearchParams();
-  if (filter?.status) params.append('status', filter.status.join(','));
-  if (filter?.priority) params.append('priority', filter.priority.join(','));
-  if (filter?.search) params.append('search', filter.search);
-  if (filter?.dateFrom) params.append('dateFrom', filter.dateFrom);
-  if (filter?.dateTo) params.append('dateTo', filter.dateTo);
-  if (pagination?.page) params.append('page', pagination.page.toString());
-  if (pagination?.limit) params.append('limit', pagination.limit.toString());
+  if (filter?.status) {params.append('status', filter.status.join(','));}
+  if (filter?.priority) {params.append('priority', filter.priority.join(','));}
+  if (filter?.search) {params.append('search', filter.search);}
+  if (filter?.dateFrom) {params.append('dateFrom', filter.dateFrom);}
+  if (filter?.dateTo) {params.append('dateTo', filter.dateTo);}
+  if (pagination?.page) {params.append('page', pagination.page.toString());}
+  if (pagination?.limit) {params.append('limit', pagination.limit.toString());}
 
   const response = await get<Delivery[]>(`/deliveries?${params.toString()}`);
   return response as PaginatedResponse<Delivery>;
@@ -627,9 +625,9 @@ export const getDeliveryListItems = async (
   }
 
   const params = new URLSearchParams();
-  if (filter?.status) params.append('status', filter.status.join(','));
-  if (filter?.priority) params.append('priority', filter.priority.join(','));
-  if (filter?.search) params.append('search', filter.search);
+  if (filter?.status) {params.append('status', filter.status.join(','));}
+  if (filter?.priority) {params.append('priority', filter.priority.join(','));}
+  if (filter?.search) {params.append('search', filter.search);}
 
   return get<DeliveryListItem[]>(`/deliveries/list?${params.toString()}`);
 };

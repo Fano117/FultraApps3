@@ -1,7 +1,7 @@
 import {useState, useEffect, useCallback, useRef} from 'react';
 import {Platform, PermissionsAndroid, Alert} from 'react-native';
 import Geolocation, {GeoPosition} from 'react-native-geolocation-service';
-import {Coordinates, defaultCoordinates} from '../models/Location';
+import {Coordinates} from '../models/Location';
 
 interface UseLocationOptions {
   enableHighAccuracy?: boolean;
@@ -111,7 +111,7 @@ export const useLocation = (options: UseLocationOptions = {}): UseLocationReturn
       return null;
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       Geolocation.getCurrentPosition(
         (position: GeoPosition) => {
           const coords: Coordinates = {
@@ -233,6 +233,7 @@ export const useCurrentLocation = () => {
 
   useEffect(() => {
     getCurrentLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {location, isLoading, error, refetch: getCurrentLocation};

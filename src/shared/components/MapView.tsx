@@ -1,11 +1,10 @@
-import React, {useRef, useEffect, useCallback} from 'react';
-import {View, StyleSheet, Platform} from 'react-native';
+import React, {useRef, useCallback, useEffect} from 'react';
+import {View, StyleSheet} from 'react-native';
 import RNMapView, {
   Marker,
   Polyline,
   PROVIDER_GOOGLE,
   Region,
-  MapMarkerProps,
 } from 'react-native-maps';
 import {Coordinates, MapRegion, MapMarker, defaultMapRegion} from '../models/Location';
 import {colors} from '../../design-system/theme/colors';
@@ -35,7 +34,8 @@ export const MapView: React.FC<MapViewProps> = ({
 }) => {
   const mapRef = useRef<RNMapView>(null);
 
-  // Fit map to markers
+  // Fit map to markers - available for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const fitToMarkers = useCallback(() => {
     if (markers.length > 0 && mapRef.current) {
       const coordinates = markers.map(m => m.coordinate);
@@ -46,7 +46,8 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   }, [markers]);
 
-  // Fit to route
+  // Fit to route - available for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const fitToRoute = useCallback(() => {
     if (route.length > 0 && mapRef.current) {
       mapRef.current.fitToCoordinates(route, {
@@ -56,7 +57,8 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   }, [route]);
 
-  // Animate to coordinate
+  // Animate to coordinate - available for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const animateToCoordinate = useCallback((coordinate: Coordinates, zoom?: number) => {
     if (mapRef.current) {
       mapRef.current.animateToRegion({

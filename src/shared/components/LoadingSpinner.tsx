@@ -57,7 +57,7 @@ export const LoadingOverlay: React.FC<{
   visible: boolean;
   message?: string;
 }> = ({visible, message}) => {
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <View style={styles.overlayContainer}>
