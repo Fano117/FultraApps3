@@ -1,6 +1,21 @@
 // HERE API Configuration
+
+// Get API key from environment variable
+const getApiKey = (): string => {
+  const apiKey = process.env.HERE_API_KEY;
+  if (!apiKey || apiKey === 'YOUR_HERE_API_KEY') {
+    if (typeof __DEV__ !== 'undefined' && !__DEV__) {
+      console.warn(
+        'HERE_API_KEY environment variable is not set. HERE Maps API calls will fail.',
+      );
+    }
+    return 'YOUR_HERE_API_KEY';
+  }
+  return apiKey;
+};
+
 export const HERE_CONFIG = {
-  apiKey: process.env.HERE_API_KEY || 'YOUR_HERE_API_KEY',
+  apiKey: getApiKey(),
 
   endpoints: {
     geocode: 'https://geocode.search.hereapi.com/v1/geocode',

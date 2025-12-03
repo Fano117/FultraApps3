@@ -3,6 +3,7 @@ import {View, StyleSheet, Platform} from 'react-native';
 import RNMapView, {
   Marker,
   Polyline,
+  PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
 import {Coordinates, MapRegion, MapMarker, defaultMapRegion} from '../models/Location';
@@ -133,7 +134,7 @@ export const MapView: React.FC<MapViewProps> = ({
       <RNMapView
         ref={mapRef}
         style={styles.map}
-        provider={Platform.OS === 'android' ? 'google' : undefined}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
         initialRegion={initialRegion}
         showsUserLocation={showUserLocation}
         showsMyLocationButton={false}
@@ -186,7 +187,7 @@ export const SimpleMapView: React.FC<{
     <View style={[styles.simpleContainer, style]}>
       <RNMapView
         style={styles.map}
-        provider={Platform.OS === 'android' ? 'google' : undefined}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
         initialRegion={{
           ...coordinate,
           latitudeDelta: 0.01,
@@ -231,7 +232,7 @@ export const RouteMapView: React.FC<{
       <RNMapView
         ref={mapRef}
         style={styles.map}
-        provider={Platform.OS === 'android' ? 'google' : undefined}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
         showsUserLocation={!!currentLocation}
         showsMyLocationButton={false}>
         {/* Origin marker */}

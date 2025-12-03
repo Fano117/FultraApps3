@@ -319,7 +319,7 @@ export const getDirections = async (
         ? destCoords?.coordinates.longitude
         : request.destination.longitude;
 
-    if (!originLat || !originLng || !destLat || !destLng) {
+    if (originLat == null || originLng == null || destLat == null || destLng == null) {
       return {
         routes: [],
         status: 'NOT_FOUND',
@@ -395,10 +395,39 @@ export const getDirections = async (
           0,
         );
 
-        // Combine all polylines
-        const allPolylines = sections.map((s: any) => s.polyline || '').join('');
+        // Decode and combine all polyline segments
+        // Each section polyline is decoded separately and coordinates are combined
+        const combinedCoordinates: Coordinates[] = sections.flatMap(
+          (section: any) => {
+            if (!section.polyline) {
+              return [];
+            }
+            try {
+              const decoded = decodeFlexPolyline(section.polyline);
+              return decoded.polyline.map(([lat, lng]) => ({
+                latitude: lat,
+                longitude: lng,
+              }));
+            } catch {
+              return [];
+            }
+          },
+        );
+
+        // Re-encode the combined coordinates as a single flexible polyline
+        const combinedPolyline =
+          combinedCoordinates.length > 0
+            ? encodeFlexPolyline({
+                polyline: combinedCoordinates.map(c => [
+                  c.latitude,
+                  c.longitude,
+                ]),
+                precision: 5,
+              })
+            : '';
 
         // Combine all steps/actions
+        // Note: HERE doesn't provide per-action coordinates in the actions array
         const steps = sections.flatMap((section: any) =>
           (section.actions || []).map((action: any) => ({
             distance: {
@@ -410,7 +439,7 @@ export const getDirections = async (
               text: formatDuration(action.duration || 0),
             },
             startLocation: {
-              latitude: 0, // HERE doesn't provide per-action coordinates in actions
+              latitude: 0,
               longitude: 0,
             },
             endLocation: {
@@ -419,7 +448,7 @@ export const getDirections = async (
             },
             instruction: action.instruction || '',
             maneuver: action.action || '',
-            polyline: '', // Not available per-action in HERE
+            polyline: '',
           })),
         );
 
@@ -428,12 +457,12 @@ export const getDirections = async (
 
         return {
           origin: {
-            latitude: originLocation.lat || originLat,
-            longitude: originLocation.lng || originLng,
+            latitude: originLocation.lat ?? originLat,
+            longitude: originLocation.lng ?? originLng,
           },
           destination: {
-            latitude: destLocation.lat || destLat,
-            longitude: destLocation.lng || destLng,
+            latitude: destLocation.lat ?? destLat,
+            longitude: destLocation.lng ?? destLng,
           },
           distance: {
             value: totalLength,
@@ -443,7 +472,7 @@ export const getDirections = async (
             value: totalDuration,
             text: formatDuration(totalDuration),
           },
-          polyline: allPolylines,
+          polyline: combinedPolyline,
           steps,
         };
       });
