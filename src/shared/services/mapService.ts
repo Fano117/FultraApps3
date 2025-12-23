@@ -1,3 +1,4 @@
+import {decode as decodeFlexPolyline, encode as encodeFlexPolyline} from '@here/flexpolyline';
 import {
   Coordinates,
   Location,
@@ -9,22 +10,13 @@ import {
   MapRegion,
   defaultMapRegion,
 } from '../models/Location';
-
-// Google Maps API Key (replace with your actual key)
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
-
-// API URLs
-const GEOCODING_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
-const DIRECTIONS_URL = 'https://maps.googleapis.com/maps/api/directions/json';
-const PLACES_AUTOCOMPLETE_URL =
-  'https://maps.googleapis.com/maps/api/place/autocomplete/json';
-const PLACES_DETAILS_URL = 'https://maps.googleapis.com/maps/api/place/details/json';
+import {HERE_CONFIG, buildHereUrl, getTravelMode} from './hereConfig';
 
 // Enable mock mode for development
 const USE_MOCK = __DEV__;
 
 /**
- * Geocode an address to coordinates
+ * Geocode an address to coordinates using HERE Geocoding API
  */
 export const geocodeAddress = async (address: string): Promise<GeocodingResult | null> => {
   if (USE_MOCK) {
@@ -45,25 +37,33 @@ export const geocodeAddress = async (address: string): Promise<GeocodingResult |
   }
 
   try {
-    const response = await fetch(
-      `${GEOCODING_URL}?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`,
-    );
+    const url = buildHereUrl(HERE_CONFIG.endpoints.geocode, {
+      q: address,
+      lang: HERE_CONFIG.searchConfig.lang,
+      in: `countryCode:${HERE_CONFIG.searchConfig.country}`,
+    });
+
+    const response = await fetch(url);
     const data = await response.json();
 
-    if (data.status === 'OK' && data.results.length > 0) {
-      const result = data.results[0];
+    if (data.items && data.items.length > 0) {
+      const result = data.items[0];
+      const addr = result.address || {};
+
       return {
-        placeId: result.place_id,
-        formattedAddress: result.formatted_address,
+        placeId: result.id,
+        formattedAddress: addr.label || address,
         coordinates: {
-          latitude: result.geometry.location.lat,
-          longitude: result.geometry.location.lng,
+          latitude: result.position.lat,
+          longitude: result.position.lng,
         },
-        addressComponents: result.address_components.map((component: any) => ({
-          longName: component.long_name,
-          shortName: component.short_name,
-          types: component.types,
-        })),
+        addressComponents: [
+          {longName: addr.street || '', shortName: addr.street || '', types: ['route']},
+          {longName: addr.city || '', shortName: addr.city || '', types: ['locality']},
+          {longName: addr.state || '', shortName: addr.stateCode || '', types: ['administrative_area_level_1']},
+          {longName: addr.postalCode || '', shortName: addr.postalCode || '', types: ['postal_code']},
+          {longName: addr.countryName || '', shortName: addr.countryCode || '', types: ['country']},
+        ].filter(c => c.longName),
       };
     }
 
@@ -75,7 +75,7 @@ export const geocodeAddress = async (address: string): Promise<GeocodingResult |
 };
 
 /**
- * Reverse geocode coordinates to address
+ * Reverse geocode coordinates to address using HERE Reverse Geocoding API
  */
 export const reverseGeocode = async (
   coordinates: Coordinates,
@@ -92,22 +92,29 @@ export const reverseGeocode = async (
   }
 
   try {
-    const response = await fetch(
-      `${GEOCODING_URL}?latlng=${coordinates.latitude},${coordinates.longitude}&key=${GOOGLE_MAPS_API_KEY}`,
-    );
+    const url = buildHereUrl(HERE_CONFIG.endpoints.reverseGeocode, {
+      at: `${coordinates.latitude},${coordinates.longitude}`,
+      lang: HERE_CONFIG.searchConfig.lang,
+    });
+
+    const response = await fetch(url);
     const data = await response.json();
 
-    if (data.status === 'OK' && data.results.length > 0) {
-      const result = data.results[0];
+    if (data.items && data.items.length > 0) {
+      const result = data.items[0];
+      const addr = result.address || {};
+
       return {
-        placeId: result.place_id,
-        formattedAddress: result.formatted_address,
+        placeId: result.id,
+        formattedAddress: addr.label || '',
         coordinates,
-        addressComponents: result.address_components.map((component: any) => ({
-          longName: component.long_name,
-          shortName: component.short_name,
-          types: component.types,
-        })),
+        addressComponents: [
+          {longName: addr.street || '', shortName: addr.street || '', types: ['route']},
+          {longName: addr.city || '', shortName: addr.city || '', types: ['locality']},
+          {longName: addr.state || '', shortName: addr.stateCode || '', types: ['administrative_area_level_1']},
+          {longName: addr.postalCode || '', shortName: addr.postalCode || '', types: ['postal_code']},
+          {longName: addr.countryName || '', shortName: addr.countryCode || '', types: ['country']},
+        ].filter(c => c.longName),
       };
     }
 
@@ -119,11 +126,11 @@ export const reverseGeocode = async (
 };
 
 /**
- * Get place autocomplete suggestions
+ * Get place autocomplete suggestions using HERE Autosuggest API
  */
 export const getPlaceAutocomplete = async (
   input: string,
-  sessionToken?: string,
+  _sessionToken?: string,
 ): Promise<PlaceAutocompleteResult[]> => {
   if (USE_MOCK) {
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -155,23 +162,28 @@ export const getPlaceAutocomplete = async (
   }
 
   try {
-    let url = `${PLACES_AUTOCOMPLETE_URL}?input=${encodeURIComponent(input)}&key=${GOOGLE_MAPS_API_KEY}&components=country:mx&language=es`;
-
-    if (sessionToken) {
-      url += `&sessiontoken=${sessionToken}`;
-    }
+    const url = buildHereUrl(HERE_CONFIG.endpoints.autosuggest, {
+      q: input,
+      at: `${HERE_CONFIG.defaultLocation.lat},${HERE_CONFIG.defaultLocation.lng}`,
+      lang: HERE_CONFIG.searchConfig.lang,
+      limit: String(HERE_CONFIG.searchConfig.limit),
+      in: `countryCode:${HERE_CONFIG.searchConfig.country}`,
+    });
 
     const response = await fetch(url);
     const data = await response.json();
 
-    if (data.status === 'OK') {
-      return data.predictions.map((prediction: any) => ({
-        placeId: prediction.place_id,
-        description: prediction.description,
-        mainText: prediction.structured_formatting?.main_text || prediction.description,
-        secondaryText: prediction.structured_formatting?.secondary_text || '',
-        types: prediction.types || [],
-      }));
+    if (data.items) {
+      return data.items.map((item: any) => {
+        const addr = item.address || {};
+        return {
+          placeId: item.id,
+          description: addr.label || item.title,
+          mainText: item.title,
+          secondaryText: addr.city ? `${addr.city}, ${addr.state || addr.countryName || ''}` : '',
+          types: item.resultType ? [item.resultType] : [],
+        };
+      });
     }
 
     return [];
@@ -182,11 +194,11 @@ export const getPlaceAutocomplete = async (
 };
 
 /**
- * Get place details by place ID
+ * Get place details by place ID using HERE Lookup API
  */
 export const getPlaceDetails = async (
   placeId: string,
-  sessionToken?: string,
+  _sessionToken?: string,
 ): Promise<Location | null> => {
   if (USE_MOCK) {
     await new Promise(resolve => setTimeout(resolve, 400));
@@ -205,32 +217,27 @@ export const getPlaceDetails = async (
   }
 
   try {
-    let url = `${PLACES_DETAILS_URL}?place_id=${placeId}&fields=geometry,formatted_address,address_components&key=${GOOGLE_MAPS_API_KEY}`;
-
-    if (sessionToken) {
-      url += `&sessiontoken=${sessionToken}`;
-    }
+    const url = buildHereUrl(HERE_CONFIG.endpoints.lookup, {
+      id: placeId,
+      lang: HERE_CONFIG.searchConfig.lang,
+    });
 
     const response = await fetch(url);
     const data = await response.json();
 
-    if (data.status === 'OK' && data.result) {
-      const result = data.result;
-      const addressComponents = result.address_components || [];
-
-      const getComponent = (type: string) =>
-        addressComponents.find((c: any) => c.types.includes(type))?.long_name || '';
+    if (data && data.position) {
+      const addr = data.address || {};
 
       return {
-        latitude: result.geometry.location.lat,
-        longitude: result.geometry.location.lng,
-        address: result.formatted_address,
-        city: getComponent('locality') || getComponent('administrative_area_level_2'),
-        state: getComponent('administrative_area_level_1'),
-        postalCode: getComponent('postal_code'),
-        country: getComponent('country'),
-        placeId,
-        formattedAddress: result.formatted_address,
+        latitude: data.position.lat,
+        longitude: data.position.lng,
+        address: addr.label || '',
+        city: addr.city || '',
+        state: addr.state || '',
+        postalCode: addr.postalCode || '',
+        country: addr.countryName || '',
+        placeId: data.id,
+        formattedAddress: addr.label || '',
       };
     }
 
@@ -242,7 +249,7 @@ export const getPlaceDetails = async (
 };
 
 /**
- * Get directions between two points
+ * Get directions between two points using HERE Routing v8 API
  */
 export const getDirections = async (
   request: DirectionsRequest,
@@ -285,83 +292,213 @@ export const getDirections = async (
   }
 
   try {
-    const originStr =
+    // Parse origin and destination
+    const originCoords =
       typeof request.origin === 'string'
-        ? request.origin
-        : `${request.origin.latitude},${request.origin.longitude}`;
-    const destStr =
+        ? await geocodeAddress(request.origin)
+        : null;
+    const destCoords =
       typeof request.destination === 'string'
-        ? request.destination
-        : `${request.destination.latitude},${request.destination.longitude}`;
+        ? await geocodeAddress(request.destination)
+        : null;
 
-    let url = `${DIRECTIONS_URL}?origin=${encodeURIComponent(originStr)}&destination=${encodeURIComponent(destStr)}&key=${GOOGLE_MAPS_API_KEY}&mode=${request.mode || 'driving'}`;
+    const originLat =
+      typeof request.origin === 'string'
+        ? originCoords?.coordinates.latitude
+        : request.origin.latitude;
+    const originLng =
+      typeof request.origin === 'string'
+        ? originCoords?.coordinates.longitude
+        : request.origin.longitude;
+    const destLat =
+      typeof request.destination === 'string'
+        ? destCoords?.coordinates.latitude
+        : request.destination.latitude;
+    const destLng =
+      typeof request.destination === 'string'
+        ? destCoords?.coordinates.longitude
+        : request.destination.longitude;
 
-    if (request.waypoints && request.waypoints.length > 0) {
-      const waypointsStr = request.waypoints
-        .map(wp => (typeof wp === 'string' ? wp : `${wp.latitude},${wp.longitude}`))
-        .join('|');
-      url += `&waypoints=${encodeURIComponent(waypointsStr)}`;
+    if (originLat == null || originLng == null || destLat == null || destLng == null) {
+      return {
+        routes: [],
+        status: 'NOT_FOUND',
+        errorMessage: 'Could not resolve origin or destination coordinates',
+      };
     }
 
-    if (request.avoidTolls) {url += '&avoid=tolls';}
-    if (request.avoidHighways) {url += '&avoid=highways';}
-    if (request.alternatives) {url += '&alternatives=true';}
+    // Build HERE Routing URL
+    const params: Record<string, string> = {
+      transportMode: getTravelMode(request.mode),
+      origin: `${originLat},${originLng}`,
+      destination: `${destLat},${destLng}`,
+      return: 'polyline,summary,actions,instructions',
+      lang: HERE_CONFIG.searchConfig.lang,
+    };
 
+    // Add waypoints if present (HERE uses via parameter)
+    if (request.waypoints && request.waypoints.length > 0) {
+      const viaPoints = await Promise.all(
+        request.waypoints.map(async wp => {
+          if (typeof wp === 'string') {
+            const result = await geocodeAddress(wp);
+            return result
+              ? `${result.coordinates.latitude},${result.coordinates.longitude}`
+              : null;
+          }
+          return `${wp.latitude},${wp.longitude}`;
+        }),
+      );
+      const validViaPoints = viaPoints.filter(Boolean) as string[];
+      if (validViaPoints.length > 0) {
+        validViaPoints.forEach((via, index) => {
+          params[`via${index}`] = via;
+        });
+      }
+    }
+
+    // Add avoid options
+    const avoidFeatures: string[] = [];
+    if (request.avoidTolls) {
+      avoidFeatures.push('tollRoad');
+    }
+    if (request.avoidHighways) {
+      avoidFeatures.push('controlledAccessHighway');
+    }
+    if (avoidFeatures.length > 0) {
+      params['avoid[features]'] = avoidFeatures.join(',');
+    }
+
+    // Request alternatives if needed
+    if (request.alternatives) {
+      params.alternatives = '3';
+    }
+
+    const url = buildHereUrl(HERE_CONFIG.endpoints.routing, params);
     const response = await fetch(url);
     const data = await response.json();
 
-    if (data.status === 'OK' && data.routes.length > 0) {
+    if (data.routes && data.routes.length > 0) {
       const routes: RouteInfo[] = data.routes.map((route: any) => {
-        const leg = route.legs[0];
-        return {
-          origin:
-            typeof request.origin === 'string'
-              ? {
-                  latitude: leg.start_location.lat,
-                  longitude: leg.start_location.lng,
-                }
-              : request.origin,
-          destination:
-            typeof request.destination === 'string'
-              ? {
-                  latitude: leg.end_location.lat,
-                  longitude: leg.end_location.lng,
-                }
-              : request.destination,
-          distance: {
-            value: leg.distance.value,
-            text: leg.distance.text,
+        // HERE routes have sections, we combine them
+        const sections = route.sections || [];
+        const firstSection = sections[0] || {};
+        const lastSection = sections[sections.length - 1] || firstSection;
+
+        // Calculate total distance and duration
+        const totalDuration = sections.reduce(
+          (sum: number, s: any) => sum + (s.summary?.duration || 0),
+          0,
+        );
+        const totalLength = sections.reduce(
+          (sum: number, s: any) => sum + (s.summary?.length || 0),
+          0,
+        );
+
+        // Decode and combine all polyline segments
+        // Each section polyline is decoded separately and coordinates are combined
+        const combinedCoordinates: Coordinates[] = sections.flatMap(
+          (section: any) => {
+            if (!section.polyline) {
+              return [];
+            }
+            try {
+              const decoded = decodeFlexPolyline(section.polyline);
+              return decoded.polyline.map(([lat, lng]) => ({
+                latitude: lat,
+                longitude: lng,
+              }));
+            } catch {
+              return [];
+            }
           },
-          duration: {
-            value: leg.duration.value,
-            text: leg.duration.text,
-          },
-          polyline: route.overview_polyline.points,
-          steps: leg.steps.map((step: any) => ({
-            distance: {value: step.distance.value, text: step.distance.text},
-            duration: {value: step.duration.value, text: step.duration.text},
+        );
+
+        // Re-encode the combined coordinates as a single flexible polyline
+        const combinedPolyline =
+          combinedCoordinates.length > 0
+            ? encodeFlexPolyline({
+                polyline: combinedCoordinates.map(c => [
+                  c.latitude,
+                  c.longitude,
+                ]),
+                precision: 5,
+              })
+            : '';
+
+        // Combine all steps/actions from HERE's response
+        // Note: HERE Routing v8 API provides actions with instructions but doesn't include
+        // per-action coordinates or polylines in the actions array. The overall route
+        // polyline above contains the full path. Applications needing step-level coordinates
+        // should derive them from the combined polyline using the action offsets.
+        const steps = sections.flatMap((section: any) =>
+          (section.actions || []).map((action: any) => ({
+            distance: {
+              value: action.length || 0,
+              text: formatDistance(action.length || 0),
+            },
+            duration: {
+              value: action.duration || 0,
+              text: formatDuration(action.duration || 0),
+            },
+            // HERE API doesn't provide per-action coordinates; these would need
+            // to be derived from the polyline using action offset values
             startLocation: {
-              latitude: step.start_location.lat,
-              longitude: step.start_location.lng,
+              latitude: 0,
+              longitude: 0,
             },
             endLocation: {
-              latitude: step.end_location.lat,
-              longitude: step.end_location.lng,
+              latitude: 0,
+              longitude: 0,
             },
-            instruction: step.html_instructions.replace(/<[^>]*>/g, ''),
-            maneuver: step.maneuver,
-            polyline: step.polyline.points,
+            instruction: action.instruction || '',
+            maneuver: action.action || '',
+            // Individual step polylines not available from HERE; use main route polyline
+            polyline: '',
           })),
+        );
+
+        const originLocation = firstSection.departure?.place?.location || {};
+        const destLocation = lastSection.arrival?.place?.location || {};
+
+        return {
+          origin: {
+            latitude: originLocation.lat ?? originLat,
+            longitude: originLocation.lng ?? originLng,
+          },
+          destination: {
+            latitude: destLocation.lat ?? destLat,
+            longitude: destLocation.lng ?? destLng,
+          },
+          distance: {
+            value: totalLength,
+            text: formatDistance(totalLength),
+          },
+          duration: {
+            value: totalDuration,
+            text: formatDuration(totalDuration),
+          },
+          polyline: combinedPolyline,
+          steps,
         };
       });
 
       return {routes, status: 'OK'};
     }
 
+    // Handle HERE API errors
+    if (data.error) {
+      return {
+        routes: [],
+        status: 'UNKNOWN_ERROR',
+        errorMessage: data.error || 'HERE API error',
+      };
+    }
+
     return {
       routes: [],
-      status: data.status,
-      errorMessage: data.error_message,
+      status: 'ZERO_RESULTS',
+      errorMessage: 'No routes found',
     };
   } catch (error) {
     console.error('Directions error:', error);
@@ -374,51 +511,25 @@ export const getDirections = async (
 };
 
 /**
- * Decode a polyline string to coordinates
- * Uses bitwise operations as required by the polyline algorithm
+ * Decode a HERE flexible polyline string to coordinates
+ * Uses the @here/flexpolyline library for HERE's Flexible Polyline format
  */
-/* eslint-disable no-bitwise */
 export const decodePolyline = (encoded: string): Coordinates[] => {
-  const points: Coordinates[] = [];
-  let index = 0;
-  let lat = 0;
-  let lng = 0;
-
-  while (index < encoded.length) {
-    let b;
-    let shift = 0;
-    let result = 0;
-
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-
-    const dlat = result & 1 ? ~(result >> 1) : result >> 1;
-    lat += dlat;
-
-    shift = 0;
-    result = 0;
-
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-
-    const dlng = result & 1 ? ~(result >> 1) : result >> 1;
-    lng += dlng;
-
-    points.push({
-      latitude: lat / 1e5,
-      longitude: lng / 1e5,
-    });
+  if (!encoded) {
+    return [];
   }
 
-  return points;
+  try {
+    const decoded = decodeFlexPolyline(encoded);
+    return decoded.polyline.map(([lat, lng]) => ({
+      latitude: lat,
+      longitude: lng,
+    }));
+  } catch (error) {
+    console.error('Error decoding polyline:', error);
+    return [];
+  }
 };
-/* eslint-enable no-bitwise */
 
 /**
  * Calculate distance between two coordinates (Haversine formula)
@@ -467,54 +578,25 @@ export const formatDuration = (seconds: number): string => {
 };
 
 /**
- * Generate mock polyline for development
+ * Generate mock polyline for development using HERE's Flexible Polyline format
  */
 const generateMockPolyline = (
   origin: Coordinates,
   destination: Coordinates,
 ): string => {
   // Simple mock - just connect origin to destination
-  // In production, this would be the actual encoded polyline from Google
+  // Uses HERE's Flexible Polyline format
   const points = [origin, destination];
   return encodeMockPolyline(points);
 };
 
 /**
- * Encode coordinates to polyline (for mock data)
+ * Encode coordinates to HERE Flexible Polyline format (for mock data)
  */
 const encodeMockPolyline = (coordinates: Coordinates[]): string => {
-  let encoded = '';
-  let prevLat = 0;
-  let prevLng = 0;
-
-  for (const coord of coordinates) {
-    const lat = Math.round(coord.latitude * 1e5);
-    const lng = Math.round(coord.longitude * 1e5);
-
-    encoded += encodeNumber(lat - prevLat);
-    encoded += encodeNumber(lng - prevLng);
-
-    prevLat = lat;
-    prevLng = lng;
-  }
-
-  return encoded;
+  const polyline = coordinates.map(coord => [coord.latitude, coord.longitude]);
+  return encodeFlexPolyline({polyline, precision: 5});
 };
-
-/* eslint-disable no-bitwise */
-const encodeNumber = (num: number): string => {
-  let encoded = '';
-  let value = num < 0 ? ~(num << 1) : num << 1;
-
-  while (value >= 0x20) {
-    encoded += String.fromCharCode((0x20 | (value & 0x1f)) + 63);
-    value >>= 5;
-  }
-
-  encoded += String.fromCharCode(value + 63);
-  return encoded;
-};
-/* eslint-enable no-bitwise */
 
 /**
  * Get region that fits all coordinates

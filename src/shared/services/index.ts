@@ -9,3 +9,6 @@ export * from './deliveryService';
 
 // Map Service
 export * from './mapService';
+
+// HERE Maps Configuration
+export * from './hereConfig';
